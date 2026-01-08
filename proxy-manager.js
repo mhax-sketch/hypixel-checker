@@ -1,11 +1,10 @@
 const axios = require('axios');
-const { spawn } = require('child_process');
 
 class ProxyManager {
     constructor() {
         this.proxies = [];
         this.currentIndex = 0;
-        this.testedProxies = new Map(); // proxy -> {alive, speed, lastChecked}
+        this.lastUsedProxy = null; // Track the last proxy used for reuse
     }
 
     // Scrape proxies from free sources
@@ -40,6 +39,8 @@ class ProxyManager {
                     type: this.detectProxyType(url),
                     alive: null,
                     speed: null,
+                    hypixelSafe: null,
+                    lastHypixelCheck: null,
                     country: 'Unknown'
                 })));
             } catch (error) {
@@ -74,7 +75,7 @@ class ProxyManager {
         try {
             const config = {
                 timeout: timeout,
-                proxy: false // Disable axios default proxy
+                proxy: false
             };
 
             // For HTTP proxies, use axios with proxy config
@@ -89,28 +90,93 @@ class ProxyManager {
             await axios.get(testUrl, config);
             const speed = Date.now() - startTime;
 
-            this.testedProxies.set(proxy.address, {
-                alive: true,
-                speed: speed,
-                lastChecked: Date.now()
-            });
-
             return { alive: true, speed };
         } catch (error) {
-            this.testedProxies.set(proxy.address, {
-                alive: false,
-                speed: null,
-                lastChecked: Date.now()
-            });
             return { alive: false, speed: null };
         }
     }
 
-    // Test all proxies (with concurrency limit)
-    async testAllProxies(concurrency = 10, onProgress) {
-        const results = { alive: 0, dead: 0, total: this.proxies.length };
+    // Check if proxy is banned on Hypixel
+    async testHypixelSafety(proxy, timeout = 10000) {
+        try {
+            const [host, port] = proxy.address.split(':');
+            
+            const websiteConfig = {
+                timeout: timeout,
+                proxy: false,
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                }
+            };
+
+            if (proxy.type === 'http') {
+                websiteConfig.proxy = {
+                    host: host,
+                    port: parseInt(port)
+                };
+            }
+
+            // Test Hypixel website access
+            try {
+                const response = await axios.get('https://hypixel.net', websiteConfig);
+                
+                if (response.data.includes('blocked') || 
+                    response.data.includes('Access denied') ||
+                    response.data.includes('Ray ID') ||
+                    response.status === 403) {
+                    
+                    proxy.lastHypixelCheck = Date.now();
+                    proxy.hypixelSafe = false;
+                    
+                    return { safe: false, reason: 'Website blocked' };
+                }
+            } catch (error) {
+                if (error.response && error.response.status === 403) {
+                    proxy.lastHypixelCheck = Date.now();
+                    proxy.hypixelSafe = false;
+                    return { safe: false, reason: 'HTTP 403 Forbidden' };
+                }
+                if (error.code === 'ECONNREFUSED') {
+                    proxy.lastHypixelCheck = Date.now();
+                    proxy.hypixelSafe = false;
+                    return { safe: false, reason: 'Connection refused' };
+                }
+            }
+
+            // Test Hypixel API access
+            try {
+                const apiConfig = { ...websiteConfig };
+                const apiResponse = await axios.get('https://api.hypixel.net/status', apiConfig);
+                
+                if (apiResponse.data.success === false) {
+                    proxy.lastHypixelCheck = Date.now();
+                    proxy.hypixelSafe = false;
+                    return { safe: false, reason: 'API rejected' };
+                }
+            } catch (error) {
+                if (error.response && error.response.status === 403) {
+                    proxy.lastHypixelCheck = Date.now();
+                    proxy.hypixelSafe = false;
+                    return { safe: false, reason: 'API blocked' };
+                }
+            }
+
+            proxy.lastHypixelCheck = Date.now();
+            proxy.hypixelSafe = true;
+            
+            return { safe: true, reason: 'Verified' };
+
+        } catch (error) {
+            proxy.lastHypixelCheck = Date.now();
+            proxy.hypixelSafe = false;
+            return { safe: false, reason: error.message };
+        }
+    }
+
+    // Test all proxies
+    async testAllProxies(concurrency = 10, onProgress, checkHypixel = false) {
+        const results = { alive: 0, dead: 0, hypixelSafe: 0, hypixelBanned: 0, total: this.proxies.length };
         
-        // Split into chunks
         for (let i = 0; i < this.proxies.length; i += concurrency) {
             const chunk = this.proxies.slice(i, i + concurrency);
             
@@ -121,8 +187,20 @@ class ProxyManager {
                 
                 if (result.alive) {
                     results.alive++;
+
+                    if (checkHypixel) {
+                        const hypixelResult = await this.testHypixelSafety(proxy);
+                        proxy.hypixelSafe = hypixelResult.safe;
+
+                        if (hypixelResult.safe) {
+                            results.hypixelSafe++;
+                        } else {
+                            results.hypixelBanned++;
+                        }
+                    }
                 } else {
                     results.dead++;
+                    proxy.hypixelSafe = false;
                 }
 
                 if (onProgress) {
@@ -130,47 +208,72 @@ class ProxyManager {
                         tested: i + chunk.indexOf(proxy) + 1,
                         alive: results.alive,
                         dead: results.dead,
+                        hypixelSafe: results.hypixelSafe,
+                        hypixelBanned: results.hypixelBanned,
                         total: results.total
                     });
                 }
             }));
         }
 
-        // Sort by speed (fastest first)
-        this.proxies = this.proxies.filter(p => p.alive).sort((a, b) => a.speed - b.speed);
+        // Sort proxies: Hypixel-safe first, then by speed
+        this.proxies = this.proxies
+            .filter(p => p.alive)
+            .sort((a, b) => {
+                if (a.hypixelSafe && !b.hypixelSafe) return -1;
+                if (!a.hypixelSafe && b.hypixelSafe) return 1;
+                return a.speed - b.speed;
+            });
+
         return results;
     }
 
-    // Get next proxy (round-robin)
-    getNextProxy() {
+    // Get next proxy (with option to reuse last proxy)
+    getNextProxy(hypixelSafeOnly = true, reuseLast = false) {
         if (this.proxies.length === 0) return null;
-        const proxy = this.proxies[this.currentIndex];
-        this.currentIndex = (this.currentIndex + 1) % this.proxies.length;
+
+        // If reuse is requested and we have a last proxy, return it
+        if (reuseLast && this.lastUsedProxy) {
+            return this.lastUsedProxy;
+        }
+
+        const now = Date.now();
+        const fiveMinutes = 5 * 60 * 1000;
+
+        // Filter proxies: must be Hypixel-safe and recently checked
+        const availableProxies = hypixelSafeOnly 
+            ? this.proxies.filter(p => {
+                const isRecent = p.lastHypixelCheck && (now - p.lastHypixelCheck < fiveMinutes);
+                return p.hypixelSafe === true && isRecent;
+            })
+            : this.proxies;
+
+        if (availableProxies.length === 0) return null;
+
+        // Get next proxy from rotation
+        const proxy = availableProxies[this.currentIndex % availableProxies.length];
+        this.currentIndex = (this.currentIndex + 1) % availableProxies.length;
+        
+        // Store this as the last used proxy
+        this.lastUsedProxy = proxy;
+        
         return proxy;
     }
 
-    // Get proxies by country
-    getProxiesByCountry(countryCode) {
-        return this.proxies.filter(p => p.country === countryCode);
+    // Get only Hypixel-safe proxies
+    getHypixelSafeProxies() {
+        return this.proxies.filter(p => p.alive && p.hypixelSafe === true);
     }
 
-    // Get fastest proxies
-    getFastestProxies(count = 10) {
+    // Export proxies
+    exportProxies(hypixelSafeOnly = true) {
         return this.proxies
-            .filter(p => p.alive)
-            .sort((a, b) => a.speed - b.speed)
-            .slice(0, count);
-    }
-
-    // Export proxies to text
-    exportProxies() {
-        return this.proxies
-            .filter(p => p.alive)
+            .filter(p => p.alive && (!hypixelSafeOnly || p.hypixelSafe === true))
             .map(p => p.address)
             .join('\n');
     }
 
-    // Import proxies from text
+    // Import proxies
     importProxies(text, type = 'http') {
         const addresses = text.split('\n').filter(p => p.trim());
         const imported = addresses.map(address => ({
@@ -178,6 +281,8 @@ class ProxyManager {
             type: type,
             alive: null,
             speed: null,
+            hypixelSafe: null,
+            lastHypixelCheck: null,
             country: 'Unknown'
         }));
         this.proxies = this.removeDuplicates([...this.proxies, ...imported]);
@@ -188,7 +293,7 @@ class ProxyManager {
     clear() {
         this.proxies = [];
         this.currentIndex = 0;
-        this.testedProxies.clear();
+        this.lastUsedProxy = null;
     }
 
     // Get statistics
@@ -196,12 +301,16 @@ class ProxyManager {
         const alive = this.proxies.filter(p => p.alive).length;
         const dead = this.proxies.filter(p => p.alive === false).length;
         const untested = this.proxies.filter(p => p.alive === null).length;
+        const hypixelSafe = this.proxies.filter(p => p.hypixelSafe === true).length;
+        const hypixelBanned = this.proxies.filter(p => p.hypixelSafe === false && p.alive).length;
 
         return {
             total: this.proxies.length,
             alive,
             dead,
             untested,
+            hypixelSafe,
+            hypixelBanned,
             avgSpeed: alive > 0 ? 
                 this.proxies.filter(p => p.alive).reduce((sum, p) => sum + p.speed, 0) / alive : 
                 0
@@ -210,6 +319,3 @@ class ProxyManager {
 }
 
 module.exports = ProxyManager;
-
-// Install required dependencies:
-// npm install axios

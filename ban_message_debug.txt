@@ -1,18 +1,26 @@
 === RAW TEXT ===
-Your account has been blocked.
+You are temporarily banned for 29d 21h 41m 54s from this server!
 
-Reason: Suspicious activity has been detected on your account.
-Find out more: https://www.hypixel.net/security-block
+Reason: Cheating through the use of unfair game advantages.
+Find out more: https://www.hypixel.net/appeal
 
-Block ID: #6AB5D909
-Sharing your Block ID may affect the processing of your appeal!
+Ban ID: #6AB5DFCA
+Sharing your Ban ID may affect the processing of your appeal!
 
 === JSON STRUCTURE ===
 {
   "extra": [
     {
       "color": "red",
-      "text": "Your account has been blocked.\n\n"
+      "text": "You are temporarily banned for "
+    },
+    {
+      "color": "white",
+      "text": "29d 21h 41m 54s"
+    },
+    {
+      "color": "red",
+      "text": " from this server!\n\n"
     },
     {
       "color": "gray",
@@ -20,7 +28,7 @@ Sharing your Block ID may affect the processing of your appeal!
     },
     {
       "color": "white",
-      "text": "Suspicious activity has been detected on your account.\n"
+      "text": "Cheating through the use of unfair game advantages.\n"
     },
     {
       "color": "gray",
@@ -29,19 +37,19 @@ Sharing your Block ID may affect the processing of your appeal!
     {
       "color": "aqua",
       "underlined": true,
-      "text": "https://www.hypixel.net/security-block\n\n"
+      "text": "https://www.hypixel.net/appeal\n\n"
     },
     {
       "color": "gray",
-      "text": "Block ID: "
+      "text": "Ban ID: "
     },
     {
       "color": "white",
-      "text": "#6AB5D909\n"
+      "text": "#6AB5DFCA\n"
     },
     {
       "color": "gray",
-      "text": "Sharing your Block ID may affect the processing of your appeal!"
+      "text": "Sharing your Ban ID may affect the processing of your appeal!"
     }
   ],
   "text": ""

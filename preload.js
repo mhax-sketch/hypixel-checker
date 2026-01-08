@@ -7,7 +7,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   // Proxy management
   scrapeProxies: (type) => ipcRenderer.invoke('scrape-proxies', type),
-  testProxies: () => ipcRenderer.invoke('test-proxies'),
+  testProxies: (checkHypixel) => ipcRenderer.invoke('test-proxies', checkHypixel),
   clearProxies: () => ipcRenderer.invoke('clear-proxies'),
   exportProxies: () => ipcRenderer.invoke('export-proxies'),
   importProxies: () => ipcRenderer.invoke('import-proxies'),

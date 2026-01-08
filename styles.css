@@ -181,15 +181,20 @@ label {
     background: #eba0ac;
 }
 
-.results-box {
+	.results-box {
     background: #313244;
     border-radius: 8px;
     padding: 15px;
     height: 250px;
     overflow-y: auto;
+    overflow-x: auto; /* ADD THIS */
     font-family: 'Consolas', monospace;
     font-size: 11px;
     line-height: 1.6;
+    word-wrap: break-word; /* ADD THIS */
+    word-break: break-all; /* ADD THIS */
+    white-space: pre-wrap; /* ADD THIS */
+}
 }
 
 .results-box::-webkit-scrollbar {
@@ -233,9 +238,29 @@ label {
     cursor: pointer;
 }
 
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    color: #cdd6f4;
+    padding: 10px;
+    background: #313244;
+    border-radius: 8px;
+    flex: 1;
+}
+
+.checkbox-label input[type="checkbox"] {
+    cursor: pointer;
+    accent-color: #89b4fa;
+    width: 16px;
+    height: 16px;
+}
+
 .proxy-stats {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 10px;
     margin-bottom: 15px;
 }
@@ -251,6 +276,10 @@ label {
     background: linear-gradient(135deg, #313244 0%, #264334 100%);
 }
 
+.stat-box.hypixel-safe {
+    background: linear-gradient(135deg, #313244 0%, #2d4a5c 100%);
+}
+
 .stat-box.dead {
     background: linear-gradient(135deg, #313244 0%, #3d2636 100%);
 }
@@ -264,6 +293,10 @@ label {
 
 .stat-box.alive .stat-value {
     color: #a6e3a1;
+}
+
+.stat-box.hypixel-safe .stat-value {
+    color: #74c7ec;
 }
 
 .stat-box.dead .stat-value {
@@ -326,6 +359,16 @@ label {
     border-left: 3px solid #a6e3a1;
 }
 
+.proxy-item.hypixel-safe {
+    border-left: 3px solid #74c7ec;
+    background: linear-gradient(90deg, #45475a 0%, #2d4a5c 100%);
+}
+
+.proxy-item.hypixel-banned {
+    border-left: 3px solid #f9e2af;
+    opacity: 0.6;
+}
+
 .proxy-item.dead {
     border-left: 3px solid #f38ba8;
     opacity: 0.5;
@@ -353,6 +396,23 @@ label {
 .proxy-speed {
     color: #a6e3a1;
     font-weight: 600;
+}
+
+.status-badge {
+    background: #313244;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+}
+
+.status-badge.safe {
+    background: #2d4a5c;
+    color: #74c7ec;
+}
+
+.status-badge.banned {
+    background: #3d3028;
+    color: #f9e2af;
 }
 
 .status-bar {

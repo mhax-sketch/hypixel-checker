@@ -50,6 +50,12 @@
                     </label>
                 </div>
             </div>
+			<div class="section">
+    <label class="checkbox-label" style="margin-top: 10px;">
+        <input type="checkbox" id="reuseSameProxy">
+        <span>🔄 Reuse same proxy for next check (useful for checking same token multiple times)</span>
+    </label>
+</div>
 
             <!-- Buttons -->
             <div class="button-group">
@@ -83,6 +89,12 @@
                     <button id="importBtn" class="btn btn-secondary">📁 Import</button>
                     <button id="exportBtn" class="btn btn-secondary">💾 Export</button>
                 </div>
+                <div class="control-row">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="checkHypixel" checked>
+                        <span>🛡️ Only show Hypixel-safe proxies (slower but safer)</span>
+                    </label>
+                </div>
             </div>
 
             <!-- Proxy Stats -->
@@ -95,9 +107,13 @@
                     <div class="stat-value" id="aliveProxies">0</div>
                     <div class="stat-label">Alive</div>
                 </div>
+                <div class="stat-box hypixel-safe">
+                    <div class="stat-value" id="hypixelSafeProxies">0</div>
+                    <div class="stat-label">Hypixel Safe</div>
+                </div>
                 <div class="stat-box dead">
                     <div class="stat-value" id="deadProxies">0</div>
-                    <div class="stat-label">Dead</div>
+                    <div class="stat-label">Dead/Banned</div>
                 </div>
                 <div class="stat-box">
                     <div class="stat-value" id="avgSpeed">0ms</div>

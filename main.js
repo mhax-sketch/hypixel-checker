@@ -39,27 +39,69 @@ app.on('activate', () => {
 });
 
 // ===== TOKEN CHECKING =====
-ipcMain.handle('check-token', async (event, token, proxyType) => {
-  return new Promise((resolve, reject) => {
+ipcMain.handle('check-token', async (event, token, proxyType, reuseSameProxy = false) => {
+  return new Promise(async (resolve, reject) => {
     const pythonScript = path.join(__dirname, 'python', 'checker.py');
     
-    // Get proxy if needed
     let proxyArg = 'none';
+    
+    // Handle Auto Rotate proxy selection
     if (proxyType === 'auto') {
-      const proxy = proxyManager.getNextProxy();
+      const proxy = proxyManager.getNextProxy(true, reuseSameProxy);
+      
       if (proxy) {
-        proxyArg = `${proxy.type}:${proxy.address}`;
+        // Re-verify proxy safety before using it
+        mainWindow.webContents.send('check-progress', '🔍 Verifying proxy safety...\n');
+        const safetyCheck = await proxyManager.testHypixelSafety(proxy);
+        
+        if (!safetyCheck.safe) {
+          // Proxy is now banned, mark it and try next one
+          proxy.hypixelSafe = false;
+          mainWindow.webContents.send('check-progress', `⚠️  Proxy ${proxy.address} is now banned! Trying next...\n`);
+          
+          const newProxy = proxyManager.getNextProxy(true, false);
+          if (newProxy) {
+            const newCheck = await proxyManager.testHypixelSafety(newProxy);
+            if (newCheck.safe) {
+              proxyArg = `${newProxy.type}:${newProxy.address}`;
+              mainWindow.webContents.send('check-progress', `✅ Using fresh proxy: ${newProxy.address}\n`);
+            } else {
+              mainWindow.webContents.send('check-progress', '❌ No safe proxies available!\n');
+            }
+          }
+        } else {
+          // Proxy is still safe
+          proxyArg = `${proxy.type}:${proxy.address}`;
+          if (reuseSameProxy) {
+            mainWindow.webContents.send('check-progress', `🔄 Reusing same proxy: ${proxy.address}\n`);
+          } else {
+            mainWindow.webContents.send('check-progress', `✅ Proxy verified safe: ${proxy.address}\n`);
+          }
+        }
       }
     }
     
+    // Run Python checker script
     const python = spawn('python', [pythonScript, token, proxyArg]);
     
     let output = '';
     let errorOutput = '';
+    let jsonOutput = '';
 
     python.stdout.on('data', (data) => {
-      output += data.toString();
-      mainWindow.webContents.send('check-progress', data.toString());
+      const text = data.toString();
+      output += text;
+      
+      // Only send non-JSON lines to the UI
+      const lines = text.split('\n');
+      lines.forEach(line => {
+        // Skip JSON lines (they contain quotes and braces)
+        if (!line.includes('"mc_name"') && !line.includes('"mc_uuid"') && 
+            !line.includes('"status"') && !line.includes('"reason"') &&
+            !line.trim().startsWith('{') && !line.trim().startsWith('}')) {
+          mainWindow.webContents.send('check-progress', line + '\n');
+        }
+      });
     });
 
     python.stderr.on('data', (data) => {
@@ -83,7 +125,6 @@ ipcMain.handle('check-token', async (event, token, proxyType) => {
 
 // ===== PROXY MANAGEMENT =====
 
-// Scrape proxies
 ipcMain.handle('scrape-proxies', async (event, type) => {
   try {
     const count = await proxyManager.scrapeProxies(type);
@@ -91,48 +132,50 @@ ipcMain.handle('scrape-proxies', async (event, type) => {
     return {
       count,
       stats,
-      proxies: proxyManager.proxies.slice(0, 100) // Return first 100 for display
+      proxies: proxyManager.proxies.slice(0, 100)
     };
   } catch (error) {
     throw new Error('Failed to scrape proxies: ' + error.message);
   }
 });
 
-// Test proxies
-ipcMain.handle('test-proxies', async (event) => {
+ipcMain.handle('test-proxies', async (event, checkHypixel = false) => {
   try {
     const results = await proxyManager.testAllProxies(10, (progress) => {
       mainWindow.webContents.send('proxy-progress', progress);
-    });
+    }, checkHypixel);
     
     const stats = proxyManager.getStats();
+    
+    const proxiesToShow = checkHypixel 
+      ? proxyManager.getHypixelSafeProxies().slice(0, 100)
+      : proxyManager.proxies.slice(0, 100);
+    
     return {
       ...results,
       stats,
-      proxies: proxyManager.proxies.slice(0, 100)
+      proxies: proxiesToShow
     };
   } catch (error) {
     throw new Error('Failed to test proxies: ' + error.message);
   }
 });
 
-// Clear proxies
 ipcMain.handle('clear-proxies', async () => {
   proxyManager.clear();
   return { success: true };
 });
 
-// Export proxies
 ipcMain.handle('export-proxies', async () => {
   try {
     const { filePath } = await dialog.showSaveDialog(mainWindow, {
       title: 'Export Proxies',
-      defaultPath: 'proxies.txt',
+      defaultPath: 'proxies-hypixel-safe.txt',
       filters: [{ name: 'Text Files', extensions: ['txt'] }]
     });
 
     if (filePath) {
-      const data = proxyManager.exportProxies();
+      const data = proxyManager.exportProxies(true);
       await fs.writeFile(filePath, data, 'utf8');
       return { success: true, path: filePath };
     }
@@ -143,7 +186,6 @@ ipcMain.handle('export-proxies', async () => {
   }
 });
 
-// Import proxies
 ipcMain.handle('import-proxies', async () => {
   try {
     const { filePaths } = await dialog.showOpenDialog(mainWindow, {
