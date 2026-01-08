@@ -1,0 +1,30 @@
+{
+  "name": "hypixel-checker",
+  "version": "1.0.0",
+  "description": "Hypixel Ban Checker",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "build": {
+    "appId": "com.hypixel.checker",
+    "productName": "Hypixel Ban Checker",
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.png"
+    },
+    "files": [
+      "**/*",
+      "python/**/*"
+    ]
+  },
+  "devDependencies": {
+    "electron": "^28.3.3",
+    "electron-builder": "^24.13.3"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}

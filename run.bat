@@ -1,0 +1,3 @@
+@echo off
+echo Starting Hypixel Ban Checker...
+npm start

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hypixel Ban Checker</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🎮 HYPIXEL BAN CHECKER</h1>
+            <p class="subtitle">Session Token Validator with Proxy Management</p>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="checker">Token Checker</button>
+            <button class="tab-btn" data-tab="proxy">Proxy Manager</button>
+        </div>
+
+        <!-- Token Checker Tab -->
+        <div class="tab-content active" id="checker-tab">
+            <!-- Token Input -->
+            <div class="section">
+                <label>Session Token:</label>
+                <textarea id="tokenInput" placeholder="Paste your session token here (starts with eyJ...)"></textarea>
+            </div>
+
+            <!-- Proxy Selection -->
+            <div class="section">
+                <label>Proxy Settings:</label>
+                <div class="proxy-options">
+                    <label class="radio-label">
+                        <input type="radio" name="proxy" value="none" checked>
+                        <span>None</span>
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="proxy" value="auto">
+                        <span>Auto Rotate</span>
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="proxy" value="http">
+                        <span>HTTP</span>
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="proxy" value="socks5">
+                        <span>SOCKS5</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="button-group">
+                <button id="checkBtn" class="btn btn-primary">CHECK TOKEN</button>
+                <button id="clearBtn" class="btn btn-secondary">CLEAR</button>
+            </div>
+
+            <!-- Results -->
+            <div class="section">
+                <label>Results:</label>
+                <div id="results" class="results-box"></div>
+            </div>
+        </div>
+
+        <!-- Proxy Manager Tab -->
+        <div class="tab-content" id="proxy-tab">
+            <!-- Proxy Controls -->
+            <div class="proxy-controls">
+                <div class="control-row">
+                    <button id="scrapeBtn" class="btn btn-primary">🌐 Scrape Proxies</button>
+                    <button id="testBtn" class="btn btn-success">✓ Test All</button>
+                    <button id="clearProxiesBtn" class="btn btn-danger">✗ Clear All</button>
+                </div>
+                <div class="control-row">
+                    <select id="proxyType" class="proxy-select">
+                        <option value="all">All Types</option>
+                        <option value="http">HTTP</option>
+                        <option value="socks4">SOCKS4</option>
+                        <option value="socks5">SOCKS5</option>
+                    </select>
+                    <button id="importBtn" class="btn btn-secondary">📁 Import</button>
+                    <button id="exportBtn" class="btn btn-secondary">💾 Export</button>
+                </div>
+            </div>
+
+            <!-- Proxy Stats -->
+            <div class="proxy-stats">
+                <div class="stat-box">
+                    <div class="stat-value" id="totalProxies">0</div>
+                    <div class="stat-label">Total</div>
+                </div>
+                <div class="stat-box alive">
+                    <div class="stat-value" id="aliveProxies">0</div>
+                    <div class="stat-label">Alive</div>
+                </div>
+                <div class="stat-box dead">
+                    <div class="stat-value" id="deadProxies">0</div>
+                    <div class="stat-label">Dead</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="avgSpeed">0ms</div>
+                    <div class="stat-label">Avg Speed</div>
+                </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="progress-container" id="progressContainer" style="display: none;">
+                <div class="progress-bar" id="progressBar"></div>
+                <div class="progress-text" id="progressText">0%</div>
+            </div>
+
+            <!-- Proxy List -->
+            <div class="section">
+                <label>Proxy List:</label>
+                <div id="proxyList" class="proxy-list-box"></div>
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <span id="status">Ready</span>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>

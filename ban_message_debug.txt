@@ -1,0 +1,48 @@
+=== RAW TEXT ===
+Your account has been blocked.
+
+Reason: Suspicious activity has been detected on your account.
+Find out more: https://www.hypixel.net/security-block
+
+Block ID: #6AB5D909
+Sharing your Block ID may affect the processing of your appeal!
+
+=== JSON STRUCTURE ===
+{
+  "extra": [
+    {
+      "color": "red",
+      "text": "Your account has been blocked.\n\n"
+    },
+    {
+      "color": "gray",
+      "text": "Reason: "
+    },
+    {
+      "color": "white",
+      "text": "Suspicious activity has been detected on your account.\n"
+    },
+    {
+      "color": "gray",
+      "text": "Find out more: "
+    },
+    {
+      "color": "aqua",
+      "underlined": true,
+      "text": "https://www.hypixel.net/security-block\n\n"
+    },
+    {
+      "color": "gray",
+      "text": "Block ID: "
+    },
+    {
+      "color": "white",
+      "text": "#6AB5D909\n"
+    },
+    {
+      "color": "gray",
+      "text": "Sharing your Block ID may affect the processing of your appeal!"
+    }
+  ],
+  "text": ""
+}
