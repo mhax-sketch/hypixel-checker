@@ -26,6 +26,7 @@ echo.
 
 echo [3/3] Installing Node.js dependencies...
 call npm install
+npm install
 if %errorlevel% neq 0 (
     echo [ERROR] Failed to install Node.js packages!
     pause
