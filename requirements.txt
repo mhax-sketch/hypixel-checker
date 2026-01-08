@@ -1,14 +1,14 @@
 # Hypixel Ban Checker - Python Requirements
 # Install with: pip install -r requirements.txt
 
-# Minecraft connection library
-minecraft==0.1.0
+# Minecraft connection library (pyCraft)
+minecraft>=0.1.2
 
 # HTTP requests
-requests==2.31.0
+requests>=2.31.0
 
 # Color output (optional, for console version)
-colorama==0.4.6
+colorama>=0.4.6
 
 # Future-proofing: ensure cryptography for secure connections
 cryptography>=41.0.0
